@@ -1,23 +1,37 @@
 services:
   db:
-    image: postgres:17-alpine
+    image: mysql:8.4
+    restart: unless-stopped
     environment:
-      POSTGRES_DB: todo
-      POSTGRES_USER: todo
-      POSTGRES_PASSWORD: todo
-    volumes: [todo-data:/var/lib/postgresql/data]
-    healthcheck: {test: ["CMD-SHELL","pg_isready -U todo -d todo"], interval: 5s, timeout: 5s, retries: 10}
+      MYSQL_DATABASE: todo
+      MYSQL_USER: todo
+      MYSQL_PASSWORD: todo
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-change-me-in-production}
+    volumes:
+      - todo-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u todo -p$${MYSQL_PASSWORD} --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 15s
   api:
     build: ./backend
+    restart: unless-stopped
     environment:
-      DATABASE_URL: jdbc:postgresql://db:5432/todo
+      DATABASE_URL: jdbc:mysql://db:3306/todo?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       DATABASE_USERNAME: todo
-      DATABASE_PASSWORD: todo
+      DATABASE_PASSWORD: ${MYSQL_PASSWORD:-todo}
       CORS_ORIGIN: http://localhost
-    depends_on: {db: {condition: service_healthy}}
+    depends_on:
+      db:
+        condition: service_healthy
   web:
     build: ./frontend
-    ports: ["80:80"]
-    depends_on: [api]
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - api
 volumes:
   todo-data:
