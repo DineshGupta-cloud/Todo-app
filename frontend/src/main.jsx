@@ -1,5 +1,5 @@
 import React,{useEffect,useState}from'react';import{createRoot}from'react-dom/client';import'./style.css';
-const API=import.meta.env.VITE_API_URL||'/api/v1/todos';
+const API='/api/v1/todos';
 function App(){const[todos,setTodos]=useState([]),[title,setTitle]=useState(''),[loading,setLoading]=useState(true),[error,setError]=useState('');
 const load=async()=>{try{setLoading(true);const r=await fetch(API);if(!r.ok)throw Error();setTodos(await r.json());setError('')}catch{setError('Could not connect to the API')}finally{setLoading(false)}};useEffect(()=>{load()},[]);
 const add=async e=>{e.preventDefault();if(!title.trim())return;const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title,completed:false})});if(r.ok){setTitle('');load()}else setError('Could not create todo')};
