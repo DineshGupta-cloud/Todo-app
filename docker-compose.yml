@@ -1,0 +1,37 @@
+services:
+  db:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: todo
+      MYSQL_USER: todo
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-todo}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-change-me-in-production}
+    volumes:
+      - todo-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u todo -p$${MYSQL_PASSWORD} --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 15s
+  api:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: jdbc:mysql://db:3306/todo?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DATABASE_USERNAME: todo
+      DATABASE_PASSWORD: ${MYSQL_PASSWORD:-todo}
+      CORS_ORIGIN: http://localhost:9090
+    depends_on:
+      db:
+        condition: service_healthy
+  web:
+    build: ./frontend
+    restart: unless-stopped
+    ports:
+      - "9090:80"
+    depends_on:
+      - api
+volumes:
+  todo-data:
